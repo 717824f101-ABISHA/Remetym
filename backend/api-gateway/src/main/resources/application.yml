@@ -1,0 +1,90 @@
+server:
+  port: 8080
+
+spring:
+  main:
+    web-application-type: reactive
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true
+      routes:
+        - id: auth-service-auth
+          uri: lb://AUTH-SERVICE
+          predicates:
+            - Path=/api/auth/**, /api/auth
+
+        - id: auth-service-users
+          uri: lb://AUTH-SERVICE
+          predicates:
+            - Path=/api/users/**, /api/users
+
+        - id: auth-service-admin
+          uri: lb://AUTH-SERVICE
+          predicates:
+            - Path=/api/admin/**, /api/admin
+
+        - id: medicine-service-phcs
+          uri: lb://MEDICINE-SERVICE
+          predicates:
+            - Path=/api/phcs/**, /api/phcs
+
+        - id: medicine-service-medicines
+          uri: lb://MEDICINE-SERVICE
+          predicates:
+            - Path=/api/medicines/**, /api/medicines
+
+        - id: medicine-service-batches
+          uri: lb://MEDICINE-SERVICE
+          predicates:
+            - Path=/api/batches/**, /api/batches
+
+        - id: inventory-service-inventory
+          uri: lb://INVENTORY-SERVICE
+          predicates:
+            - Path=/api/inventory/**, /api/inventory
+
+        - id: inventory-service-ai
+          uri: lb://INVENTORY-SERVICE
+          predicates:
+            - Path=/api/ai/**, /api/ai
+
+        - id: inventory-service-insights
+          uri: lb://INVENTORY-SERVICE
+          predicates:
+            - Path=/api/insights/**, /api/insights
+
+        - id: transfer-service-transfers
+          uri: lb://TRANSFER-SERVICE
+          predicates:
+            - Path=/api/transfers/**, /api/transfers
+
+        - id: transfer-service-requests
+          uri: lb://TRANSFER-SERVICE
+          predicates:
+            - Path=/api/requests/**, /api/requests
+
+        - id: notification-service-notif
+          uri: lb://NOTIFICATION-SERVICE
+          predicates:
+            - Path=/api/notifications/**, /api/notifications
+
+        - id: notification-service-email
+          uri: lb://NOTIFICATION-SERVICE
+          predicates:
+            - Path=/api/email/**, /api/email
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+    registry-fetch-interval-seconds: 3
+  instance:
+    prefer-ip-address: true
+
+jwt:
+  secret: RemeTymSuperSecretKeyForJwtAuthenticationTokenVerification2026!

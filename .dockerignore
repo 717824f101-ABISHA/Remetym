@@ -1,0 +1,12 @@
+node_modules
+dist
+.git
+.gitignore
+.vscode
+.idea
+*.log
+backend/target
+backend/*/target
+ml-service/__pycache__
+ml-service/*.pyc
+backend.zip

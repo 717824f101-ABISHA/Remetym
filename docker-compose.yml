@@ -1,0 +1,192 @@
+version: '3.8'
+
+services:
+  # =========================================================================
+  # 1. DATABASE LAYER (MongoDB)
+  # =========================================================================
+  mongodb:
+    image: mongo:6.0
+    container_name: remetym-mongodb
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - remetym-network
+
+  # =========================================================================
+  # 2. SERVICE REGISTRY (Eureka Server)
+  # =========================================================================
+  service-registry:
+    build:
+      context: ./backend
+      dockerfile: service-registry/Dockerfile
+    container_name: remetym-service-registry
+    restart: always
+    ports:
+      - "8761:8761"
+    networks:
+      - remetym-network
+
+  # =========================================================================
+  # 3. BACKEND MICROSERVICES
+  # =========================================================================
+  auth-service:
+    build:
+      context: ./backend
+      dockerfile: auth-service/Dockerfile
+    container_name: remetym-auth-service
+    restart: always
+    ports:
+      - "8081:8081"
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
+      - FRONTEND_URL=http://localhost
+    depends_on:
+      - service-registry
+    networks:
+      - remetym-network
+
+  medicine-service:
+    build:
+      context: ./backend
+      dockerfile: medicine-service/Dockerfile
+    container_name: remetym-medicine-service
+    restart: always
+    ports:
+      - "8082:8082"
+    environment:
+      - SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/remetym_medicine
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
+    depends_on:
+      - mongodb
+      - service-registry
+    networks:
+      - remetym-network
+
+  inventory-service:
+    build:
+      context: ./backend
+      dockerfile: inventory-service/Dockerfile
+    container_name: remetym-inventory-service
+    restart: always
+    ports:
+      - "8083:8083"
+    environment:
+      - SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/remetym_inventory
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
+      - GATEWAY_URL=http://api-gateway:8080
+      - MEDICINE_SERVICE_URL=http://medicine-service:8082
+      - TRANSFER_SERVICE_URL=http://transfer-service:8084
+      - ML_SERVICE_URL=http://ml-service:5000/api/ai
+    depends_on:
+      - mongodb
+      - service-registry
+      - medicine-service
+    networks:
+      - remetym-network
+
+  transfer-service:
+    build:
+      context: ./backend
+      dockerfile: transfer-service/Dockerfile
+    container_name: remetym-transfer-service
+    restart: always
+    ports:
+      - "8084:8084"
+    environment:
+      - SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/remetym_transfer
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
+      - GATEWAY_URL=http://api-gateway:8080
+      - SERVICES_INVENTORY_URL=http://inventory-service:8083/api/inventory
+      - SERVICES_NOTIFICATION_URL=http://notification-service:8085/api/notifications
+    depends_on:
+      - mongodb
+      - service-registry
+      - inventory-service
+    networks:
+      - remetym-network
+
+  notification-service:
+    build:
+      context: ./backend
+      dockerfile: notification-service/Dockerfile
+    container_name: remetym-notification-service
+    restart: always
+    ports:
+      - "8085:8085"
+    environment:
+      - SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/remetym_notification
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
+    depends_on:
+      - mongodb
+      - service-registry
+    networks:
+      - remetym-network
+
+  # =========================================================================
+  # 4. PYTHON XGBOOST ML SERVICE
+  # =========================================================================
+  ml-service:
+    build:
+      context: ./ml-service
+      dockerfile: Dockerfile
+    container_name: remetym-ml-service
+    restart: always
+    ports:
+      - "5000:5000"
+    environment:
+      - BACKEND_PHCS_URL=http://api-gateway:8080/api/users/active-phcs
+      - BACKEND_INVENTORY_URL=http://api-gateway:8080/api/inventory
+      - BACKEND_CONSUMPTION_URL=http://api-gateway:8080/api/inventory/consumption
+    networks:
+      - remetym-network
+
+  # =========================================================================
+  # 5. API GATEWAY (Spring Cloud Gateway)
+  # =========================================================================
+  api-gateway:
+    build:
+      context: ./backend
+      dockerfile: api-gateway/Dockerfile
+    container_name: remetym-api-gateway
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
+    depends_on:
+      - service-registry
+      - auth-service
+      - medicine-service
+      - inventory-service
+      - transfer-service
+      - notification-service
+    networks:
+      - remetym-network
+
+  # =========================================================================
+  # 6. FRONTEND (React + Vite + Nginx)
+  # =========================================================================
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: remetym-frontend
+    restart: always
+    ports:
+      - "80:80"
+      - "5173:80"
+    depends_on:
+      - api-gateway
+    networks:
+      - remetym-network
+
+networks:
+  remetym-network:
+    driver: bridge
+
+volumes:
+  mongodb_data:
+    driver: local
