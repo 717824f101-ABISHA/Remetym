@@ -4,8 +4,7 @@
  */
 
 import { KEYS } from '../utils/storageUtils';
-
-const API_BASE_URL = 'http://localhost:8080/api';
+const API_BASE_URL = 'https://remetym-1.onrender.com/api';
 
 export const authService = {
   login: async (emailOrUsername, password) => {
