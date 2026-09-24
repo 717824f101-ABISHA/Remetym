@@ -2,8 +2,9 @@ FROM maven:3.9-eclipse-temurin-17-alpine AS build
 
 WORKDIR /app
 
-COPY pom.xml .
-COPY src ./src
+COPY backend/medicine-service/pom.xml .
+
+COPY backend/medicine-service/src ./src
 
 RUN mvn clean package -DskipTests
 
