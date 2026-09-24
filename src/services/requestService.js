@@ -7,7 +7,7 @@ import { KEYS } from '../utils/storageUtils';
 import { inventoryService } from './inventoryService';
 import { matchesDistrict } from '../utils/districtUtils';
 
-const API_BASE_URL = 'http://localhost:8080/api';
+const API_BASE_URL = 'https://remetym-1.onrender.com/api';
 
 const getAuthHeaders = () => {
   const token = localStorage.getItem(KEYS.AUTH_TOKEN);
