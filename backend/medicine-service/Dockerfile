@@ -2,17 +2,21 @@ FROM maven:3.9-eclipse-temurin-17-alpine AS build
 
 WORKDIR /app
 
-COPY backend/medicine-service/pom.xml .
+# Copy the main Maven parent POM
+COPY pom.xml .
 
-COPY backend/medicine-service/src ./src
+# Copy the Medicine Service Maven project
+COPY backend/medicine-service/pom.xml backend/medicine-service/pom.xml
+COPY backend/medicine-service/src backend/medicine-service/src
 
-RUN mvn clean package -DskipTests
+# Build Medicine Service
+RUN mvn -f backend/medicine-service/pom.xml clean package -DskipTests
 
 FROM eclipse-temurin:17-jre-alpine
 
 WORKDIR /app
 
-COPY --from=build /app/target/*.jar app.jar
+COPY --from=build /app/backend/medicine-service/target/*.jar app.jar
 
 EXPOSE 8082
 
