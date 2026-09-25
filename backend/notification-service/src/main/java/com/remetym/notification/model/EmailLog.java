@@ -1,43 +1,53 @@
-package com.remetym.notification.model;
+package com.remetym.notification.service;
 
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.Document;
+import com.remetym.notification.model.EmailLog;
+import com.remetym.notification.repository.EmailLogRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.stereotype.Service;
 
-@Document(collection = "email_logs")
-public class EmailLog {
-    @Id
-    private String id;
-    private String emailId;
-    private String to;
-    private String recipientName;
-    private String subject;
-    private String body;
-    private String sentAt;
-    private String type; // ACCOUNT_APPROVED, ACCOUNT_REJECTED, LOW_STOCK_ALERT
+import java.time.Instant;
+import java.util.List;
 
-    public EmailLog() {}
+@Service
+public class EmailService {
 
-    public String getId() { return id; }
-    public void setId(String id) { this.id = id; }
+    @Autowired
+    private EmailLogRepository emailLogRepository;
 
-    public String getEmailId() { return emailId; }
-    public void setEmailId(String emailId) { this.emailId = emailId; }
+    @Autowired
+    private JavaMailSender mailSender;
 
-    public String getTo() { return to; }
-    public void setTo(String to) { this.to = to; }
+    public EmailLog sendEmail(EmailLog email) {
 
-    public String getRecipientName() { return recipientName; }
-    public void setRecipientName(String recipientName) { this.recipientName = recipientName; }
+        if (email.getEmailId() == null || email.getEmailId().isEmpty()) {
+            email.setEmailId("EMAIL-" + System.currentTimeMillis());
+        }
 
-    public String getSubject() { return subject; }
-    public void setSubject(String subject) { this.subject = subject; }
+        if (email.getSentAt() == null) {
+            email.setSentAt(Instant.now().toString());
+        }
 
-    public String getBody() { return body; }
-    public void setBody(String body) { this.body = body; }
+        // Actually send the email through Gmail SMTP
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(email.getTo());
+        message.setSubject(email.getSubject());
+        message.setText(email.getBody());
 
-    public String getSentAt() { return sentAt; }
-    public void setSentAt(String sentAt) { this.sentAt = sentAt; }
+        mailSender.send(message);
 
-    public String getType() { return type; }
-    public void setType(String type) { this.type = type; }
+        System.out.println(
+                "[NOTIFICATION-SERVICE EMAIL SENT] To: "
+                        + email.getTo()
+                        + " | Subject: "
+                        + email.getSubject()
+        );
+
+        return emailLogRepository.save(email);
+    }
+
+    public List<EmailLog> getEmailHistory() {
+        return emailLogRepository.findAll();
+    }
 }
