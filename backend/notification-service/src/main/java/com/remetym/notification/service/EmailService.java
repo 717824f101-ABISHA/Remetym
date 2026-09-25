@@ -31,7 +31,6 @@ public class EmailService {
 
         // Actually send the email through Gmail SMTP
         SimpleMailMessage message = new SimpleMailMessage();
-
         message.setTo(email.getTo());
         message.setSubject(email.getSubject());
         message.setText(email.getBody());
@@ -39,10 +38,10 @@ public class EmailService {
         mailSender.send(message);
 
         System.out.println(
-            "[NOTIFICATION-SERVICE EMAIL SENT] To: "
-            + email.getTo()
-            + " | Subject: "
-            + email.getSubject()
+                "[NOTIFICATION-SERVICE EMAIL SENT] To: "
+                        + email.getTo()
+                        + " | Subject: "
+                        + email.getSubject()
         );
 
         return emailLogRepository.save(email);
